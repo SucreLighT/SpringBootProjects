@@ -134,3 +134,25 @@ students.stu[1].username=李四
 students.type=IT
 ```
 
+
+
+## 4.配置文件的位置
+
+在创建一个SpringBoot工程时，默认的resources目录下会有一个application.properties文件，但这个文件的位置不是唯一的，在SpringBoot中一个有以下四个地方可以存放application.properties文件。
+
++ Project
+  + .idea
+  + .mvn
+  + config
+    + **application.properties** //1.项目根目录下的config目录下
+  + src
+    + main
+      + java
+      + resources
+        + config
+          + **application.properties** //3.resources目录下的config目录下
+        + **application.properties** //4.resources目录下
+    + test
+  + **application.properties** //2.项目根目录下
+
+以上1234处位置的配置文件优先级依次降低，同一属性在以上四个配置文件中均出现时，以优先级最高的文件中的为准。
