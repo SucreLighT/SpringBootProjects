@@ -156,3 +156,56 @@ students.type=IT
   + **application.properties** //2.项目根目录下
 
 以上1234处位置的配置文件优先级依次降低，同一属性在以上四个配置文件中均出现时，以优先级最高的文件中的为准。
+
+
+
+# 静态资源的放置位置
+
+SpringBoot中的WebMvcAutoConfiguration类用于自动配置web相关的配置。
+
+## 1. 静态资源目录
+
+通过源码可知`WebMvcAutoConfiguration`类自动注册以下目录为静态资源目录，**从上到下优先级降低**：
+
+```
+classpath:/META-INF/resources/ 
+classpath:/resources/
+classpath:/static/ 
+classpath:/public/
+/：当前项目的根路径
+```
+
+在实际开发中的目录结构如下：
+
+```
+src/main/resources
+  ├── application.properties
+  ├── META-INF
+  │   └── resources
+  ├── public
+  ├── resources
+  ├── static
+  └── templates
+```
+
+以上四个目录是SpringBoot的默认目录，也是默认的访问路径，在浏览器中访问时**相对于根目录**，所以直接输入`http://localhost:8080/资源名`即可访问。
+
+如果需要指定自定义的静态资源目录，需要在`application.properties`中进行配置：
+
+```properties
+spring.resources.static-locations=classpath:/myResources/, classpath:/myResources2...
+```
+
+
+
+## 2. 默认首页位置
+
+与静态资源目录相同，根据优先级，如果static里面有个index.html，public下面也有个index.html，则优先会加载static下面的index.html。
+
+```
+classpath:/META-INF/resources/index.html
+classpath:/resources/index.html
+classpath:/static/index.html 
+classpath:/public/index.html
+/index.html
+```
