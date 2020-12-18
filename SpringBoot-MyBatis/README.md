@@ -56,8 +56,10 @@ spring.datasource.username=root
 spring.datasource.password=123456
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 
-#使用xml方式加载Mybatis映射文件
-mybatis.mapper-locations=classpath:mapper/*Mapper.xml
+#使用xml方式加载Mybatis映射文件的相关配置
+mybatis.config-location=classpath:mybatis-config.xml	//配置Mybatis映射文件的路径
+mybatis.mapper-locations=classpath:mapper/*Mapper.xml	//配置Mapper文件的路径
+mybatis.type-aliases-package=com.sucrelt.项目名.domain	  //配置实体类的目录，默认扫描domain下所有实体类
 ```
 
 ### 1.4 创建用户类 Bean
@@ -231,45 +233,130 @@ public class SpringBootMyBatisApplication {
 
 
 
-## 三 xml 的方式
+## 三 XML方式:star::star::star:
 
-使用xml方式进行MyBatis的配置时需要进行如下改动：
+### 1. 推荐使用XML方式
 
-### 3.1 Dao 层改动
+**使用注解的方式，首先SQL不容易排版，其次会导致Mapper接口冗长混乱。**
 
-不再使用注解编写SQL语句，
+### 2. UserDO与数据库表
+
+UserDO
 
 ```java
-@Mapper
-public interface UserDao {
-    /**
-     * 通过名字查询用户信息
-     */
-    User findUserByName(String name);
+@Setter
+@Getter
+@ToString
+public class UserDO {
+    private Integer id;
+    private String username;
+    private String password;
+    private Date createTime;
 }
 ```
 
-### 3.2 新建Dao接口的映射文件
+sql
 
-在resources目录下新建mapper文件夹，用于存放dao接口的映射文件。
+```sql
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '用户编号',
+  `username` varchar(64) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '账号',
+  `password` varchar(32) COLLATE utf8mb4_bin DEFAULT NULL COMMENT '密码',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_username` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+```
 
-**UserMapper.xml**
+### 3. Dao层接口UserMapper
+
+```java
+@Repository
+public interface UserMapper {
+    int insert(UserDO user);
+    int updateById(UserDO user);
+    int deleteById(Integer id);
+    UserDO selectById(Integer id);
+    UserDO selectByUsername(String username);
+    List<UserDO> selectByIds(@Param("ids") List<Integer> ids); //注意这里需要使用@Param注解
+}
+```
+
++ **@Repository**注解，作用是标记数据访问 Bean 对象。在 MyBatis 的接口，实际**非必须**，只是为了避免在 Service 中，`@Autowired` 注入时报错（但不影响执行）。
++ **@Param**注解：声明变量名。
+  + 在方法为单参数时，**非必须**。
+  + 在方法为多参数时，用于指定参数列表中的参数和对应sql中的占位符的匹配关系。
+  + **:lemon:注意**：当我们传递一个List实例或者数组作为参数对象传给MyBatis时，MyBatis会自动将它包装在一个Map中，List 实例将会以“list”作为键名，而数组实例将会以“array”作为键名。
+    +  案例方法：`List<UserDO> selectByIds(List<Integer> ids);` 
+    + 这样我们在编写SQL时，设置参数类型`parameterType="java.util.List"`，具体见下面的UserMapper.xml，测试时也传入一个List类型的变量，看似没有任何问题，但实际上再执行时Mybatis会报错说明找不到变量ids。
+    + 这是因为如上所说：MyBatis将集合类型的参数包装在一个Map中，此处为List实例，故该Map中的键名为list，而非设定的ids，从而导致MyBatis无法在容器中找到ids参数并注入。
+    + **解决方法：**
+      + 如上，在方法定义时使用@Param注解，将该变量名声明为ids，这样即使MyBatis内部将List转成了Map，通过注解指定其参数名仍然为ids。**这也是在只有一个参数时仍要使用@Param注解的情况。**
+      + 另一种方法是，这里不使用@Param注解，保留参数名为list，在后面UserMapper.xml中，参数注入到collection中，将collection中参数改为list，即`<foreach item="id" collection="list" separator="," open="(" close=")" index="">`。但这种方法不通用，如果是数组集合就要改成array，需要程序员自己去判断，不如第一种方法省事。
+      + 还有一种方法就是不要传递list和数组类型，将list手动包装成Map再传参。
+
+### 4. 实体类映射文件UserMapper.xml
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="cn.sucrelt.springbootmybatis.dao.UserDao">
-    <select id="findUserByName" parameterType="String" resultType="cn.sucrelt.springbootmybatis.domain.User">
-        SELECT * FROM user WHERE name = #{name}
+<mapper namespace="cn.sucrelt.springbootmybatis.dao.UserMapper">
+
+    <sql id="FIELDS">
+        id, username, password, create_time
+    </sql>
+
+    <insert id="insert" parameterType="UserDO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users(username, password, create_time)
+        VALUES (#{username}, #{password}, #{createTime})
+    </insert>
+
+    <update id="updateById" parameterType="UserDO">
+        UPDATE users
+        <set>
+            <if test="username != null">
+                username = #{username},
+            </if>
+            <if test="password != null">
+                password = #{password},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="Integer">
+        DELETE
+        FROM users
+        WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" parameterType="Integer" resultType="UserDO">
+        SELECT
+        <include refid="FIELDS"/>
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByUsername" parameterType="String" resultType="UserDO">
+        SELECT
+        <include refid="FIELDS"/>
+        FROM users
+        WHERE username = #{username}
+        LIMIT 1
+    </select>
+
+    <select id="selectByIds" resultType="UserDO" parameterType="java.util.List">
+        SELECT
+        <include refid="FIELDS"/>
+        FROM users
+        WHERE id IN
+        <foreach item="id" collection="ids" separator="," open="(" close=")" index="">
+            #{id}
+        </foreach>
     </select>
 </mapper>
 ```
 
-### 3.2 配置文件的改动
-
-配置文件中加入MyBatis映射文件的路径
-
-```properties
-mybatis.mapper-locations=classpath:mapper/*.xml
-```
++ 对于绝大多数查询，我们是返回统一字段，所以可以使用 `<sql />` 标签，定义 SQL 段。对于性能或者查询字段比较大的查询，按需要的字段查询。
++ 对于数据库的关键字，使用大写。例如说，`SELECT`、`WHERE` 等等。

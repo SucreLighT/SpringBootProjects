@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.Date;
+
 /**
  * @description:
  * @author: sucre
@@ -14,9 +16,9 @@ import lombok.ToString;
 @Setter
 @Getter
 @ToString
-public class User {
-    private int id;
-    private String name;
-    private int age;
-    private double money;
+public class UserDO {
+    private Integer id;
+    private String username;
+    private String password;
+    private Date createTime;
 }
