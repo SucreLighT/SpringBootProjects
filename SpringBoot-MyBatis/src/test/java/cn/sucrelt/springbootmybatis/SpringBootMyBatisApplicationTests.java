@@ -2,9 +2,9 @@ package cn.sucrelt.springbootmybatis;
 
 import cn.sucrelt.springbootmybatis.dao.UserMapper;
 import cn.sucrelt.springbootmybatis.domain.UserDO;
+import cn.sucrelt.springbootmybatis.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
-import org.omg.PortableInterceptor.INACTIVE;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -60,5 +60,17 @@ class SpringBootMyBatisApplicationTests {
         for (UserDO user : users) {
             System.out.println("user：" + user.toString());
         }
+    }
+
+    @Autowired
+    private UserService userService;
+
+    @Test
+    public void testTransaction() {
+        UserDO user = new UserDO();
+        user.setUsername(UUID.randomUUID().toString());
+        user.setPassword("nicai");
+        user.setCreateTime(new Date());
+        userService.insertUser(user);
     }
 }
