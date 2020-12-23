@@ -47,7 +47,7 @@
         LIMIT 1
     </select>
 
-    <select id="selectByIds" resultType="UserDO" parameterType="java.util.Map">
+    <select id="selectByIds" resultType="UserDO" parameterType="java.util.List">
         SELECT
         <include refid="FIELDS"/>
         FROM users
@@ -55,5 +55,10 @@
         <foreach item="id" collection="ids" separator="," open="(" close=")" index="">
             #{id}
         </foreach>
+    </select>
+
+    <select id="findAllByPage" resultType="UserDO">
+        SELECT *
+        FROM users
     </select>
 </mapper>

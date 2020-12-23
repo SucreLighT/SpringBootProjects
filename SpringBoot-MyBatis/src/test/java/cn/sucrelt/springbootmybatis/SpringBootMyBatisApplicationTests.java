@@ -3,6 +3,8 @@ package cn.sucrelt.springbootmybatis;
 import cn.sucrelt.springbootmybatis.dao.UserMapper;
 import cn.sucrelt.springbootmybatis.domain.UserDO;
 import cn.sucrelt.springbootmybatis.service.UserService;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageInfo;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,11 +22,14 @@ class SpringBootMyBatisApplicationTests {
 
     @Test
     public void testInsert() {
-        UserDO user = new UserDO();
-        user.setUsername(UUID.randomUUID().toString());
-        user.setPassword("nicai");
-        user.setCreateTime(new Date());
-        userMapper.insert(user);
+        //批量插入数据，用作分页展示的数据
+        for (int i = 0; i < 20; i++) {
+            UserDO user = new UserDO();
+            user.setUsername(UUID.randomUUID().toString());
+            user.setPassword("nicai");
+            user.setCreateTime(new Date());
+            userMapper.insert(user);
+        }
     }
 
     @Test
@@ -72,5 +77,14 @@ class SpringBootMyBatisApplicationTests {
         user.setPassword("nicai");
         user.setCreateTime(new Date());
         userService.insertUser(user);
+    }
+
+    @Test
+    public void testPage(){
+        PageInfo<UserDO> pageInfo = userService.findAllByPage(3, 10);
+        System.out.println("page:" + pageInfo);
+        for(UserDO user : pageInfo.getList()) {
+            System.out.println(user);
+        }
     }
 }

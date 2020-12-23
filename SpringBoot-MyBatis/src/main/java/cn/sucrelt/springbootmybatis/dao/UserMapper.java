@@ -27,4 +27,7 @@ public interface UserMapper {
     UserDO selectByUsername(String username);
 
     List<UserDO> selectByIds(@Param("ids") List<Integer> ids);
+
+    //查询所有记录，用于测试分页查询
+    List<UserDO> findAllByPage();
 }
